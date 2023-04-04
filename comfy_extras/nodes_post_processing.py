@@ -1,7 +1,9 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image
+from PIL import Image, ImageColor
+import re
+import itertools
 
 import comfy.utils
 
@@ -124,6 +126,7 @@ class Quantize:
                     "max": 256,
                     "step": 1
                 }),
+                "palette": ("STRING", {"default": ""}),
                 "dither": (["none", "floyd-steinberg"],),
             },
         }
@@ -133,7 +136,7 @@ class Quantize:
 
     CATEGORY = "postprocessing"
 
-    def quantize(self, image: torch.Tensor, colors: int = 256, dither: str = "FLOYDSTEINBERG"):
+    def quantize(self, palette: str, image: torch.Tensor, colors: int = 256, dither: str = "FLOYDSTEINBERG"):
         batch_size, height, width, _ = image.shape
         result = torch.zeros_like(image)
 
@@ -144,8 +147,25 @@ class Quantize:
             img = (tensor_image * 255).to(torch.uint8).numpy()
             pil_image = Image.fromarray(img, mode='RGB')
 
-            palette = pil_image.quantize(colors=colors) # Required as described in https://github.com/python-pillow/Pillow/issues/5836
-            quantized_image = pil_image.quantize(colors=colors, palette=palette, dither=dither_option)
+            if palette:
+                def parse_palette(color_str):
+                    if re.match(r'#[a-fA-F0-9]{6}', color_str):
+                        return ImageColor.getrgb(color_str)
+                    elif re.match(r'\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)', color_str):
+                        return tuple(map(int, re.findall(r'\d+', color_str)))
+                    else:
+                        raise ValueError(f"Invalid color format: {color_str}")
+
+                pal_holder = Image.new('P', (1, 1))
+                pal_colors = re.findall(r'\s*#[a-fA-F0-9]{6}\s*|\s*\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)\s*', palette)
+                pal_colors = [color.strip() for color in pal_colors]
+                pal_colors = list(itertools.chain.from_iterable(map(parse_palette, pal_colors)))
+                pal_holder.putpalette(pal_colors)
+                colors = len(pal_colors) // 3
+            else:
+                pal_holder = pil_image.quantize(colors=colors)  # Required as described in https://github.com/python-pillow/Pillow/issues/5836
+
+            quantized_image = pil_image.quantize(colors=colors, palette=pal_holder, dither=dither_option)
 
             quantized_array = torch.tensor(np.array(quantized_image.convert("RGB"))).float() / 255
             result[b] = quantized_array
