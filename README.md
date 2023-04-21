@@ -48,6 +48,7 @@ Workflow examples can be found on the [Examples page](https://comfyanonymous.git
 | Ctrl/Shift + Click | Add clicked node to selection |
 | Ctrl + C/Ctrl + V | Copy and paste selected nodes (without maintaining connections to outputs of unselected nodes) |
 | Ctrl + C/Ctrl + Shift + V| Copy and paste selected nodes (maintaining connections from outputs of unselected nodes to inputs of pasted nodes) |
+| Ctrl + Z/Ctrl + Y | Undo and redo changes made to the current graph |
 | Shift + Drag | Move multiple selected nodes at the same time |
 | Ctrl + D | Load default graph |
 | Q | Toggle visibility of the queue |

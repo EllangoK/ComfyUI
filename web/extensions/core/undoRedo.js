@@ -1,8 +1,7 @@
 import { app } from "/scripts/app.js";
 
-const id = "Comfy.UndoRedo";
 app.registerExtension({
-    name: id,
+    name: "Comfy.UndoRedo",
     init() {
         class UndoRedoManager {
             constructor(app) {
@@ -27,10 +26,10 @@ app.registerExtension({
 
                 if (modifierPressed && (event.key === "z" || event.keyCode === 90)) {
                     if (this.undoStack.length) {
+                        this.redoStack.push(JSON.stringify(this.app.graph.serialize(), null, 2));
                         const json = this.undoStack.pop();
                         this.app.graph.configure(JSON.parse(json));
                         this.app.graph.setDirtyCanvas(true, true);
-                        this.redoStack.push(json);
                     }
                     event.preventDefault();
                     console.log("redostack", this.redoStack);
@@ -40,10 +39,10 @@ app.registerExtension({
                 if (modifierPressed && (event.key === "y" || event.keyCode === 89)) {
                     console.log("redo", this.redoStack);
                     if (this.redoStack.length) {
+                        this.undoStack.push(JSON.stringify(this.app.graph.serialize(), null, 2));
                         const json = this.redoStack.pop();
                         this.app.graph.configure(JSON.parse(json));
                         this.app.graph.setDirtyCanvas(true, true);
-                        this.undoStack.push(json);
                     }
                     event.preventDefault();
                     return;
